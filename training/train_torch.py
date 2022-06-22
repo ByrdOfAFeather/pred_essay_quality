@@ -13,7 +13,7 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", model_max_length=
 
 
 def tokenize(x):
-	return tokenizer(x["discourse_and_type"], padding="max_length", truncation=True)
+	return tokenizer(x["discourse_text"], padding="max_length", truncation=True)
 
 
 def train():
