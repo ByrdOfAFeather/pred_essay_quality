@@ -1,7 +1,7 @@
 import pandas as pd
 import scipy
 from sklearn.linear_model import RidgeClassifier
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoConfig
 
 
 class GenericModel:
@@ -17,7 +17,9 @@ class GenericModel:
 
 class BertClassifier(GenericModel):
 	def __init__(self):
-		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
+		config = AutoConfig.from_pretrained("bert-base-uncased")
+		config["dropout"] = 0.4
+		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3, model_args={"config":config})
 		super(BertClassifier, self).__init__(underlying_model)
 
 	def forward(self, **kwargs):

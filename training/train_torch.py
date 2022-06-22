@@ -22,7 +22,7 @@ def train():
 	model_container = BertClassifier()
 	training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=5,
 	                                  evaluation_strategy="steps", num_train_epochs=5, seed=225530,
-	                                  run_name="bert_finetune_discourse_text_and_type",)
+	                                  run_name="bert_finetune_discourse_text_and_type")
 	dataset = config.load_train_val_huggingface()
 	tokenized = dataset.map(tokenize, batched=True)
 	train_set = tokenized["train"].shuffle(seed=225530)
@@ -34,7 +34,6 @@ def train():
 		eval_dataset=val_set,
 		compute_metrics=compute_metric,
 		args=training_args,
-
 	)
 	trainer.train()
 	print(trainer.evaluate(val_set))
