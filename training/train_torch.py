@@ -9,7 +9,7 @@ from modeling.models import BertClassifier, DebertClassifier
 from utils.eval_model import compute_metric
 
 metric = load_metric("f1")
-tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", model_max_length=512)
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", model_max_length=512)
 
 
 def tokenize(x):
@@ -19,7 +19,7 @@ def tokenize(x):
 def train():
 	# configer = AutoConfig.from_pretrained("/home/byrdofafeather/ByrdOfAFeather/SSGOGETA/training/test_trainer/checkpoint-29000")
 	# model_container = AutoModelForSequenceClassification.from_config(configer)
-	model_container = DebertClassifier()
+	model_container = BertClassifier()
 	training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=3,
 	                                  evaluation_strategy="steps", num_train_epochs=5, seed=225530,
 	                                  run_name="bert_finetune_discourse_text_and_type",)

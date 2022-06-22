@@ -5,9 +5,11 @@ from sklearn.preprocessing import LabelEncoder
 from datasets import load_dataset
 from transformers import AutoTokenizer
 
+from data_transformations.pre_processors import PreProcessor, PreProcessorMethods
+
 pd.set_option('mode.chained_assignment', None)
 
-DATA_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETA/data"
+DATA_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/data"
 
 
 def load_bert_train_val(filter_adequate=False):
@@ -55,32 +57,7 @@ def create_bert_train_val():
 		json.dump(output, f)
 
 
-def create_train_val_splits():
-	full_data = pd.read_csv(f"{DATA_PATH}/train.csv")
-	with open(DATA_PATH + "/bert_splits.json") as f:
-		data = json.load(f)
-	train = full_data.iloc[data["train_indicies"]]
-	val = full_data.iloc[data["val_indicies"]]
-	encoder = get_encoder()
-
-	tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base")
-	train["discourse_and_type"] = train["discourse_type"] + " " + tokenizer.sep_token + " " + train["discourse_text"]
-	val["discourse_and_type"] = val["discourse_type"] + " " + tokenizer.sep_token + " " + val["discourse_text"]
-
-	train["label"] = encoder.transform(train["discourse_effectiveness"])
-	val["label"] = encoder.transform(val["discourse_effectiveness"])
-
-	train.drop(["discourse_id", "essay_id", "discourse_effectiveness"], axis=1, inplace=True)
-	val.drop(["discourse_id", "essay_id", "discourse_effectiveness"], axis=1, inplace=True)
-	train.to_csv(f"{DATA_PATH}/train_split.csv", index_label="Index")
-	val.to_csv(f"{DATA_PATH}/val_split.csv", index_label="Index")
-
-
 def get_encoder():
 	encoder = LabelEncoder()
 	encoder.fit(["Ineffective", "Adequate", "Effective"])
 	return encoder
-
-
-if __name__ == "__main__":
-	create_train_val_splits()
