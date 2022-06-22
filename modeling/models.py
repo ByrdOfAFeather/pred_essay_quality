@@ -17,7 +17,7 @@ class GenericModel:
 
 class BertClassifier(GenericModel):
 	def __init__(self):
-		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=3)
+		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)
 		super(BertClassifier, self).__init__(underlying_model)
 
 	def forward(self, **kwargs):

@@ -20,7 +20,7 @@ def train():
 	# configer = AutoConfig.from_pretrained("/home/byrdofafeather/ByrdOfAFeather/SSGOGETA/training/test_trainer/checkpoint-29000")
 	# model_container = AutoModelForSequenceClassification.from_config(configer)
 	model_container = BertClassifier()
-	training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=3,
+	training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=5,
 	                                  evaluation_strategy="steps", num_train_epochs=5, seed=225530,
 	                                  run_name="bert_finetune_discourse_text_and_type",)
 	dataset = config.load_train_val_huggingface()
