@@ -32,7 +32,7 @@ def train():
     for i in [0.1, 0.2, 0.3, 0.4]:
         model_container = BertClassifier(dropout=i)
         trainer = BalancedWeightUpdateTrainer(
-            weights=[0.5698354413164695, 0.25373997008023935, 0.17642458860329116],
+            weights=[1.754892601431981, 3.941042476215999, 5.668144151088842],
             model=model_container.underlying_model,
             train_dataset=train_set,
             eval_dataset=val_set,
