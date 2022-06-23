@@ -19,25 +19,25 @@ def tokenize(x):
 def train():
 	# configer = AutoConfig.from_pretrained("/home/byrdofafeather/ByrdOfAFeather/SSGOGETA/training/test_trainer/checkpoint-29000")
 	# model_container = AutoModelForSequenceClassification.from_config(configer)
-	model_container = BertClassifier()
 	training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=5,
-	                                  evaluation_strategy="steps", num_train_epochs=5, seed=225530,
-	                                  run_name="bert_finetune_discourse_text_and_type")
+	                                  evaluation_strategy="steps", num_train_epochs=3, seed=225530,
+	                                  run_name="bert_finetune_discourse_text_and_type", save_steps=1500)
 	dataset = config.load_train_val_huggingface()
 	tokenized = dataset.map(tokenize, batched=True)
 	train_set = tokenized["train"].shuffle(seed=225530)
 	val_set = tokenized["test"].shuffle(seed=225530)
-
-	trainer = Trainer(
-		model=model_container.underlying_model,
-		train_dataset=train_set,
-		eval_dataset=val_set,
-		compute_metrics=compute_metric,
-		args=training_args,
-	)
-	trainer.train()
-	print(trainer.evaluate(val_set))
-	print("here")
+	for i in [0.1, 0.2, 0.3, 0.4]:
+		model_container = BertClassifier(dropout=i)
+		trainer = Trainer(
+			model=model_container.underlying_model,
+			train_dataset=train_set,
+			eval_dataset=val_set,
+			compute_metrics=compute_metric,
+			args=training_args,
+		)
+		trainer.train()
+		print(trainer.evaluate(val_set))
+		print("here")
 
 
 def eval_baseline():

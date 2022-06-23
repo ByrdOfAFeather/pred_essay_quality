@@ -16,10 +16,10 @@ class GenericModel:
 
 
 class BertClassifier(GenericModel):
-	def __init__(self):
-		config = AutoConfig.from_pretrained("bert-base-uncased")
-		config["dropout"] = 0.4
-		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3, model_args={"config":config})
+	def __init__(self, dropout):
+		config = AutoConfig.from_pretrained("bert-base-uncased", hidden_dropout_prob=dropout, num_labels=3)
+		underlying_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", config=config)
+		print(underlying_model.config.hidden_dropout_prob)
 		super(BertClassifier, self).__init__(underlying_model)
 
 	def forward(self, **kwargs):
