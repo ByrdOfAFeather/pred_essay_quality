@@ -24,7 +24,7 @@ def train():
     training_args = TrainingArguments(output_dir="test_trainer", per_device_train_batch_size=5,
                                       evaluation_strategy="steps", num_train_epochs=3, seed=225530,
                                       run_name="bert_finetune_discourse_text_and_type", save_steps=1500,
-                                      auto_find_batch_size=True, report_to="tensorboard")
+                                      auto_find_batch_size=True, report_to="tensorboard", no_cuda=True)
     dataset = config.load_train_val_huggingface()
     tokenized = dataset.map(tokenize, batched=True)
     train_set = tokenized["train"].shuffle(seed=225530)
@@ -33,11 +33,12 @@ def train():
         model_container = BertClassifier(dropout=i)
         trainer = BalancedWeightUpdateTrainer(
             weights=[1.754892601431981, 3.941042476215999, 5.668144151088842],
-            model=model_container.underlying_model,
+            model=model_container,
             train_dataset=train_set,
             eval_dataset=val_set,
             compute_metrics=compute_metric,
             args=training_args,
+
         )
         trainer.train()
         print(trainer.evaluate(val_set))
