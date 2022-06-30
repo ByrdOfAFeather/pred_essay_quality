@@ -14,8 +14,8 @@ VALID_DISCOURSE_TYPES = {
 
 
 class PreProcessorMethods(enum.Enum):
-    AddPosition = "AddPosition"
     AddDiscourseType = "AddDiscourseType"
+    AddPosition = "AddPosition"
     AddCounterClaim = "AddCounterClaim"
     AddClaim = "AddClaim"
     All = "all"
@@ -37,10 +37,8 @@ class PreProcessor:
 
         pre_add_col = x[indexer]
         for idx, pre_add in pre_add_col.iterrows():
-            add_text = x[(x["discourse_type"] == what_to_add) & (x["essay_id"] == pre_add["essay_id"])][
-                "discourse_text"]
-            pre_add["discourse_text"] = pre_add[
-                                            "discourse_text"] + f" {tokenizer.sep_token} " + f" {tokenizer.sep_token} ".join(
+            add_text = [i.strip() for i in x[(x["discourse_type"] == what_to_add) & (x["essay_id"] == pre_add["essay_id"])]["discourse_text"]]
+            pre_add["discourse_text"] = pre_add["discourse_text"].strip() + f" {tokenizer.sep_token} " + f" {tokenizer.sep_token} ".join(
                 add_text)
         x[indexer] = pre_add_col
 
@@ -59,7 +57,7 @@ class PreProcessor:
     @staticmethod
     def add_discourse_type(x: pd.DataFrame, tokenizer: PreTrainedTokenizer) -> Any:
         """Adds discourse type in-place"""
-        x["discourse_text"] = x["discourse_type"] + f" {tokenizer.sep_token} " + x["discourse_text"]
+        x["discourse_text"] = x["discourse_type"].apply(lambda x: x.strip()) + f" {tokenizer.sep_token} " + x["discourse_text"].apply(lambda x: x.strip())
 
     def __init__(self, tokenizer, methods: List[PreProcessorMethods]):
         self.tokenizer = tokenizer
@@ -80,7 +78,7 @@ class PreProcessor:
         else:
             for method in self.methods:
                 self.method_to_method[method](x, self.tokenizer)
-
+        x["discourse_text"] = x["discourse_text"].apply(lambda x: x.strip().lower().replace(tokenizer.sep_token.lower(), tokenizer.sep_token).replace("\n", "").replace("\r", "").replace(" ", ""))
         encoder = config.get_encoder()
         x["label"] = encoder.transform(x["discourse_effectiveness"])
         return x

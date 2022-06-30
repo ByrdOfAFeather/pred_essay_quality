@@ -3,13 +3,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from datasets import load_dataset
-from transformers import AutoTokenizer
-
-from data_transformations.pre_processors import PreProcessor, PreProcessorMethods
 
 pd.set_option('mode.chained_assignment', None)
 
 DATA_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/data"
+LOG_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs"
 
 
 def load_bert_train_val(filter_adequate=False):
@@ -45,8 +43,25 @@ def load_bert_test_val():
 
 def create_bert_train_val():
 	full_data = pd.read_csv(f"{DATA_PATH}/train.csv")
-	train_indicies, val_and_test_indicies = train_test_split(full_data.index, test_size=.2, random_state=225530)
-	val_indicies, test_indicies = train_test_split(val_and_test_indicies, test_size=.5, random_state=225530)
+	essay_ids = full_data["essay_id"].unique()
+	train_essays, val_and_test_essay = train_test_split(essay_ids, test_size=.2, random_state=225530)
+	val_essay, test_essay = train_test_split(val_and_test_essay, test_size=.5, random_state=225530)
+	train_indicies = []
+	val_indicies = []
+	test_indicies = []
+
+	def get_indicies(fill, essays):
+		for ids in essays:
+			fill.extend(full_data[full_data["essay_id"] == ids].index)
+
+	get_indicies(train_indicies, train_essays)
+	get_indicies(val_indicies, val_essay)
+	get_indicies(test_indicies, test_essay)
+
+	print(len(train_indicies) / full_data.shape[0])
+	print(len(val_indicies) / full_data.shape[0])
+	print(len(test_indicies) / full_data.shape[0])
+
 	output = {
 		"train_indicies": list(train_indicies),
 		"val_indicies": list(val_indicies),
@@ -61,3 +76,7 @@ def get_encoder():
 	encoder = LabelEncoder()
 	encoder.fit(["Ineffective", "Adequate", "Effective"])
 	return encoder
+
+
+if __name__ == "__main__":
+	create_bert_train_val()
