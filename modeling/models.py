@@ -21,21 +21,26 @@ class GenericModel:
 
 
 class BertClassifier(nn.Module):
-	def __init__(self, dropout, weight_grad_index, loss_weights):
+	def __init__(self, dropout, weight_grad_index, loss_weights, num_labels):
 		super(BertClassifier, self).__init__()
-		config = AutoConfig.from_pretrained("bert-base-uncased", hidden_dropout_prob=dropout, num_labels=3)
-		self.underlying_model = AutoModel.from_pretrained("bert-base-uncased", config=config)
+		config = AutoConfig.from_pretrained("roberta-base", hidden_dropout_prob=dropout, num_labels=num_labels,)
+		self.underlying_model = AutoModel.from_pretrained("roberta-base", config=config)
 		print(f"Using {weight_grad_index} / {len(list(self.underlying_model.parameters()))}")
-		idx = 0
-		for i in self.underlying_model.parameters():
-			if idx >= weight_grad_index:
-				try:
-					torch.nn.init.xavier_uniform_(i)
-				except ValueError:
-					pass
-			else:
-				idx += 1
-				i.requires_grad = False
+		if weight_grad_index != -1:
+			idx = 0
+			for i in self.underlying_model.parameters():
+				if idx >= weight_grad_index:
+					if idx < 100:
+						# Don't initilize too early of layers
+						idx += 1
+						continue
+					try:
+						torch.nn.init.xavier_uniform_(i)
+					except ValueError:
+						pass
+				else:
+					idx += 1
+					i.requires_grad = False
 
 		sumer = 0
 		for param in self.underlying_model.parameters():
@@ -45,11 +50,11 @@ class BertClassifier(nn.Module):
 			except Exception:
 				sumer += param.shape[0]
 
-		sumer += 768 * 3
+		sumer += 768 * num_labels
 		print(f"No trainable params: {sumer}")
-		self.classifier = nn.Linear(768, 3)
+		self.classifier = nn.Linear(768, num_labels)
 		self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(loss_weights))
-		self.num_labels = 3
+		self.num_labels = num_labels
 
 	def forward(self,
 	            input_ids: Optional[torch.Tensor] = None,

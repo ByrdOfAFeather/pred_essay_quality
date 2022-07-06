@@ -21,7 +21,7 @@ def compute_metric(eval_pred):
 		multi_class_loss += np.log(softmaxed[idx][label])
 	f1_score["multi_class_loss"] = - (multi_class_loss / len(labels))
 	loss_fct = nn.CrossEntropyLoss()
-	f1_score["non_weighted_loss"] = loss_fct(torch.tensor(logits).view(-1, 3), torch.tensor(labels).long().view(-1))
+	# f1_score["non_weighted_loss"] = loss_fct(torch.tensor(logits).view(-1, 3), torch.tensor(labels).long().view(-1))
 	no_acc, no_acc0, no_acc1, no_acc2 = 0, 0, 0, 0
 	no_corr_acc, no_corr_acc0, no_corr_acc1, no_corr_acc2 = 0, 0, 0, 0
 	for idx, label in enumerate(labels):
@@ -44,7 +44,10 @@ def compute_metric(eval_pred):
 	acc = no_corr_acc / no_acc
 	acc_0 = no_corr_acc0 / no_acc0
 	acc_1 = no_corr_acc1 / no_acc1
-	acc_2 = no_corr_acc2 / no_acc2
+	if no_acc2 == 0:
+		acc_2 = 0
+	else:
+		acc_2 = no_corr_acc2 / no_acc2
 	f1_score["accuracy"] = acc
 	f1_score["accuracy_0"] = acc_0
 	f1_score["accuracy_1"] = acc_1
@@ -57,8 +60,8 @@ def multi_class_log_loss(predictions, actual):
 	for i in range(0, predictions.shape[0]):
 		for j in range(0, predictions.shape[1]):
 			multiplier = 1 if actual.iloc[i] == j else 0
-			overall_sum += multiplier * np.log(max(min(predictions[i, j], 1.0 - 10**-15), 10**-15))
-	return overall_sum * -(1/predictions.shape[0])
+			overall_sum += multiplier * np.log(max(min(predictions[i, j], 1.0 - 10 ** -15), 10 ** -15))
+	return overall_sum * -(1 / predictions.shape[0])
 
 
 def eval_model_bert(test_model: GenericModel):

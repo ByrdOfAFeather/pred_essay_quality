@@ -23,16 +23,16 @@ class BalancedWeightUpdateTrainer(Trainer):
         loss = loss_fct(logits.view(-1, self.model.num_labels), labels.view(-1))
         return (loss, outputs) if return_outputs else loss
 
-    def get_train_dataloader(self) -> DataLoader:
-        if self.train_dataset is None:
-            raise ValueError("Trainer: training requires a train_dataset.")
-        train_sampler = self._get_train_sampler()
-
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.args.train_batch_size,
-            sampler=ImbalancedDatasetSampler(self.train_dataset),
-            collate_fn=self.data_collator,
-            drop_last=self.args.dataloader_drop_last,
-            num_workers=self.args.dataloader_num_workers,
-        )
+    # def get_train_dataloader(self) -> DataLoader:
+    #     if self.train_dataset is None:
+    #         raise ValueError("Trainer: training requires a train_dataset.")
+    #     train_sampler = self._get_train_sampler()
+    #
+    #     return DataLoader(
+    #         self.train_dataset,
+    #         batch_size=self.args.train_batch_size,
+    #         sampler=ImbalancedDatasetSampler(self.train_dataset),
+    #         collate_fn=self.data_collator,
+    #         drop_last=self.args.dataloader_drop_last,
+    #         num_workers=self.args.dataloader_num_workers,
+    #     )

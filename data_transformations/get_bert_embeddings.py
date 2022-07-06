@@ -3,6 +3,7 @@ import pandas as pd
 import torch
 from transformers import BertTokenizer, BertModel
 
+from modeling.models import BertClassifier
 from utils import config
 
 HOME_DIRECTORY = config.DATA_PATH
@@ -15,7 +16,7 @@ def get_combined_text_and_discourse_type(text: str, discourse_type: str):
 def get_embeddings(dataset: str, output_file_name: str, tokenizer, model):
     t_data = pd.read_csv(dataset)
     no_iter = math.ceil(t_data.shape[0] / 6)
-    texts = t_data.apply(lambda x: get_combined_text_and_discourse_type(x["discourse_text"], x["discourse_type"]), axis=1).values
+    texts = t_data['discourse_text']
     print(texts)
     cls_dataframe = pd.DataFrame()
     for idx in range(no_iter):
@@ -41,9 +42,16 @@ def get_embeddings(dataset: str, output_file_name: str, tokenizer, model):
 
 def get_bert_embeddings(dataset: str, output_file_name: str):
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    model = BertModel.from_pretrained("bert-base-uncased")
-    model.cuda()
-    get_embeddings(dataset, output_file_name, tokenizer, model)
+    # model = BertModel.from_pretrained("bert-base-uncased")
+    # model.cuda()
+
+
+    model_container = BertClassifier(dropout=0.1, weight_grad_index=1, loss_weights=[1.0, 2.0],
+                                     num_labels=2)
+    state_dict = torch.load("/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs/THREE_CLASS_FINED_TWO_CLASS_CLASSIFICATION_BERT_150_/saved_weights/checkpoint-2000/pytorch_model.bin")
+    model_container.load_state_dict(state_dict)
+    model_container.underlying_model.cuda()
+    get_embeddings(dataset, output_file_name, tokenizer, model_container.underlying_model)
 
 
 def get_t5_embeddings(dataset: str, output_file_name: str):
@@ -54,4 +62,4 @@ def get_t5_embeddings(dataset: str, output_file_name: str):
 
 
 if __name__ == "__main__":
-    get_embeddings(f"{config.DATA_PATH}/train.csv", "bert_embeddings_train_included_discourse_type.csv")
+    get_bert_embeddings(f"{config.DATA_PATH}/train_split.csv", "bert_embeddings_binary_classifier.csv")

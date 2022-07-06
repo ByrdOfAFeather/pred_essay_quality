@@ -1,3 +1,6 @@
+import torch
+from torch import nn
+
 from data_transformations.pre_processors import PreProcessor, PreProcessorMethods
 from modeling.models import BertClassifier, DebertClassifier
 from training.trainers import BalancedWeightUpdateTrainer
@@ -14,13 +17,26 @@ import pandas as pd
 from utils.config import DATA_PATH, LOG_PATH
 
 
-def load_train_val_huggingface():
-    files = {"train": "train_split.csv", "test": "val_split.csv"}
+def load_train_val_huggingface(filter="", balanced=False):
+    if balanced:
+        extra_args = "balanced"
+    else:
+        extra_args = ""
+
+    print(f"Loading dataset with extra arguments {extra_args}")
+    if filter == "adequate":
+        files = {"train": f"train_split_no_adequate_{extra_args}.csv", "test": f"val_split_no_adequate.csv"}
+    elif filter == "effective":
+        files = {"train": f"train_split_no_effective_{extra_args}.csv", "test": f"val_split_no_effective.csv"}
+    elif filter == "ineffective":
+        files = {"train": f"train_split_no_ineffective_{extra_args}.csv", "test": f"val_split_no_ineffective.csv"}
+    else:
+        files = {"train": "train_split.csv", "test": "val_split.csv"}
     return load_dataset(f"{DATA_PATH}", data_files=files)
 
 
 metric = load_metric("f1")
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", model_max_length=512)
+tokenizer = AutoTokenizer.from_pretrained("roberta-base", model_max_length=512)
 
 
 def tokenize(x):
@@ -31,26 +47,19 @@ def tokenize_t(x):
     return tokenizer(x["discourse_text"], padding="max_length", truncation=True, return_tensors="pt")
 
 
-def train():
-    # configer = AutoConfig.from_pretrained("/home/byrdofafeather/ByrdOfAFeather/SSGOGETA/training/test_trainer/checkpoint-29000")
-    # model_container = AutoModelForSequenceClassification.from_config(configer)
-    weight_index = 160
+def train(model_container, train_set, val_set, weights_list, name_format):
     # weights_list = [1.754892601431981, 3.941042476215999, 5.668144151088842]
-    weights_list = [1.0, 1.0, 1.0]
-    name_format = f"BERT_DATAV3_WEIGHT_INDEX_{weight_index}_REINIT_IMBALACNEDSAMPLER_INCEPOCH"
-    model_container = BertClassifier(dropout=0.1, weight_grad_index=weight_index, loss_weights=weights_list)
+    # weights_list = [0.3, 1.0, 1.0]
+    # weights_list = [1.0, 2.0]
     training_args = TrainingArguments(output_dir=f"{LOG_PATH}/{name_format}/saved_weights", per_device_train_batch_size=8,
-                                      evaluation_strategy="steps", num_train_epochs=5, seed=225530, eval_steps=500,
+                                      evaluation_strategy="steps", num_train_epochs=10, seed=225530, eval_steps=500,
                                       run_name=f"{name_format}", save_total_limit=5,
                                       metric_for_best_model="eval_loss", report_to=["mlflow", "tensorboard"],
                                       logging_dir=f"{LOG_PATH}/{name_format}", logging_steps=100,
-                                      auto_find_batch_size=True)
+                                      auto_find_batch_size=True, learning_rate=4.961e-6)
     training_args.load_best_model_at_end = True
 
-    dataset = load_train_val_huggingface()
-    tokenized = dataset.map(tokenize, batched=True)
-    train_set = tokenized["train"].shuffle(seed=225530)
-    val_set = tokenized["test"].shuffle(seed=225530)
+
     trainer = BalancedWeightUpdateTrainer(
         weights=weights_list,
         model=model_container,
@@ -65,8 +74,40 @@ def train():
     return model_container
 
 
-final_model = train()
+def train_binary(remove):
+    dataset = load_train_val_huggingface(filter=remove, balanced=True)
+    tokenized = dataset.map(tokenize, batched=True)
+    train_set = tokenized["train"].shuffle(seed=225530)
+    val_set = tokenized["test"].shuffle(seed=225530)
+    weight_index = -1
+    weights_list = [1.0, 1.0]
+    num_labels=2
+    model_container = BertClassifier(dropout=0.1, weight_grad_index=weight_index, loss_weights=weights_list, num_labels=num_labels)
+    name_format = f"ROBERTA_REMOVED_{remove}_{weight_index}_BALANCED"
+    final_model = train(model_container, train_set, val_set, weights_list=weights_list, name_format=name_format)
 
+
+def train_all():
+    dataset = load_train_val_huggingface(filter_adequate=False)
+    tokenized = dataset.map(tokenize, batched=True)
+    train_set = tokenized["train"].shuffle(seed=225530)
+    val_set = tokenized["test"].shuffle(seed=225530)
+    weight_index = 175
+    weights_list = [1.0, 1.0]
+    num_labels = 3
+    model_container = BertClassifier(dropout=0.1, weight_grad_index=weight_index, loss_weights=weights_list,
+                                     num_labels=2)
+    state_dict = torch.load("/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs/THREE_CLASS_FINED_TWO_CLASS_CLASSIFICATION_BERT_150_/saved_weights/checkpoint-2000/pytorch_model.bin")
+    model_container.load_state_dict(state_dict)
+    model_container.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([0.3,1.0,1.0]))
+    model_container.classifier = nn.Linear(768, 3)
+    model_container.num_labels = 3
+    final_model = train(model_container, train_set, val_set, num_labels=3)
+
+
+if __name__ == "__main__":
+    for exp_type in ["effective", "ineffective", "adequate"]:
+        train_binary(remove=exp_type)
 # test_vals = pd.read_csv(f"{DATA_PATH}/test.csv")
 # pre_processor = PreProcessor(tokenizer, [PreProcessorMethods.All])
 # pre_processor.preprocess(test_vals)

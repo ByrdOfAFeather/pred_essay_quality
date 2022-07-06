@@ -77,6 +77,21 @@ def get_encoder():
 	encoder.fit(["Ineffective", "Adequate", "Effective"])
 	return encoder
 
+def get_ineffective_effective_encoder():
+	encoder = LabelEncoder()
+	encoder.fit(["Ineffective", "Effective"])
+	return encoder
+
+def get_adequate_ineffective_encoder():
+	encoder = LabelEncoder()
+	encoder.fit(["Adequate", "Ineffective"])
+	return encoder
+
+def get_adequate_effective_encoder():
+	encoder = LabelEncoder()
+	encoder.fit(["Adequate", "Effective"])
+	return encoder
+
 
 if __name__ == "__main__":
 	create_bert_train_val()
