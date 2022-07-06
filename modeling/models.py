@@ -84,6 +84,46 @@ class BertClassifier(nn.Module):
 		)
 
 
+class EnsembleBertClassifier(nn.Module):
+	def __init__(self, model_list, **kwargs):
+		super().__init__()
+		self.model_list = model_list
+		for model in self.model_list:
+			for parameter in model.parameters():
+				parameter.requires_grade = False
+
+		self.classification_method = kwargs.get("classificaiton_method", "mean_pool")
+		if self.classification_method == "mean_pool":
+			self.classifier = nn.Linear(768, 3)
+		elif self.classification_method == "all":
+			self.classifier = nn.Linear(768*3, 3)
+
+	def forward(self, input_ids: Optional[torch.Tensor] = None,
+	            attention_mask: Optional[torch.Tensor] = None,
+	            token_type_ids: Optional[torch.Tensor] = None,
+	            position_ids: Optional[torch.Tensor] = None,
+	            head_mask: Optional[torch.Tensor] = None,
+	            inputs_embeds: Optional[torch.Tensor] = None,
+	            labels: Optional[torch.Tensor] = None,
+	            output_attentions: Optional[bool] = None,
+	            output_hidden_states: Optional[bool] = None,
+	            return_dict: Optional[bool] = None, **kwargs):
+
+		embeddings = torch.zeros([3, input_ids.shape[0], 768])
+		for idx, model in enumerate(self.model_list):
+			embedding = model(input_ids, attention_mask=attention_mask,
+											   token_type_ids=token_type_ids,
+											   position_ids=position_ids,
+											   head_mask=head_mask,
+											   inputs_embeds=inputs_embeds,
+											   output_attentions=output_attentions,
+											   output_hidden_states=output_hidden_states,
+											   return_dict=return_dict, )
+			embeddings[idx] = embedding[0][:, 0, :]
+
+		return self.classifier(embeddings.mean(dim=0))
+
+
 class DebertClassifier(GenericModel):
 	def __init__(self, weight_grad_index):
 		self.underlying_model = AutoModelForSequenceClassification.from_pretrained("microsoft/deberta-v3-base", num_labels=3)
