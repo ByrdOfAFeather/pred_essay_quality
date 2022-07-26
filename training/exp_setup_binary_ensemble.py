@@ -26,7 +26,7 @@ def train_binary_models(remove):
                                       run_name=f"{name_format}", save_total_limit=5,
                                       metric_for_best_model="eval_loss", report_to=["mlflow", "tensorboard"],
                                       logging_dir=f"{LOG_PATH}/{name_format}", logging_steps=100,
-                                      auto_find_batch_size=True, learning_rate=4.961e-6)
+                                      auto_find_batch_size=True, learning_rate=4.961e-4)
 
     training_args.load_best_model_at_end = True
 
@@ -36,30 +36,38 @@ def train_binary_models(remove):
 def train_ensemble(binary_models: List[str]):
     binary_berts = []
     for model in binary_models:
-        local_model = BertClassifier(dropout=0.1, weight_grad_index=-1, loss_weights=[1.0,1.0], num_labels=2)
+        local_model = BertClassifier(dropout=0.1, weight_grad_index=-1, loss_weights=[1.0, 1.0], num_labels=2)
         state_dict = torch.load(model)
         local_model.load_state_dict(state_dict)
-        binary_berts.append(local_model.underlying_model)
+        binary_berts.append(local_model.underlying_model.cuda())
 
-    model = EnsembleBertClassifier(model_list=binary_berts)
+    model = EnsembleBertClassifier(model_list=binary_berts, classificaiton_method="all")
 
     name_format = "ENSEMBLE_DEBUGGING"
     training_args = TrainingArguments(output_dir=f"{LOG_PATH}/{name_format}/saved_weights",
-                                      per_device_train_batch_size=8,
-                                      evaluation_strategy="steps", num_train_epochs=3, seed=225530, eval_steps=500,
+                                      per_device_train_batch_size=5,
+                                      evaluation_strategy="steps", num_train_epochs=15, seed=225530, eval_steps=500,
                                       run_name=f"{name_format}", save_total_limit=5,
                                       metric_for_best_model="eval_loss", report_to=["mlflow", "tensorboard"],
                                       logging_dir=f"{LOG_PATH}/{name_format}", logging_steps=100,
-                                      auto_find_batch_size=True, learning_rate=4.961e-6)
+                                      auto_find_batch_size=True,
+                                      learning_rate=4.961e-8
+                                      )
 
     training_args.load_best_model_at_end = True
-    dataset = load_train_val_huggingface(balanced=True)
+    dataset = load_train_val_huggingface(balanced=False)
     tokenized = dataset.map(tokenize, batched=True)
     train_set = tokenized["train"].shuffle(seed=225530)
     val_set = tokenized["test"].shuffle(seed=225530)
-    final_model = train(model, train_set, val_set, weights_list=[1.0, 1.0, 1.0], training_args=training_args)
+    weights_list = [1.754892601431981, 3.941042476215999, 5.668144151088842]
+    final_model = train(model, train_set, val_set, weights_list=weights_list, training_args=training_args)
+
 
 if __name__ == "__main__":
     # for exp_type in ["effective", "ineffective", "adequate"]:
     #     train_binary_models(remove=exp_type)
-    train_ensemble([""])
+    train_ensemble([
+        "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs/ROBERTA_REMOVED_ineffective_-1_BALANCED/saved_weights/checkpoint-37000/pytorch_model.bin",
+        "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs/ROBERTA_REMOVED_effective_-1_BALANCED/saved_weights/checkpoint-25500/pytorch_model.bin",
+        "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs/ROBERTA_REMOVED_adequate_-1_BALANCED/saved_weights/checkpoint-25500/pytorch_model.bin"
+    ])

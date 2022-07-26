@@ -133,7 +133,20 @@ def downsample(df:pd.DataFrame, label_col_name:str) -> pd.DataFrame:
             # split the dataframe per group
             .groupby(label_col_name)
             # sample nmin observations from each group
-            .apply(lambda x: x.sample(nmin))
+            .apply(lambda x: x.sample(nmin, random_state=225530))
+            # recombine the dataframes
+            .reset_index(drop=True)
+            )
+
+def oversample(df:pd.DataFrame, label_col_name:str) -> pd.DataFrame:
+    """https://rensdimmendaal.com/data-science/undersampling-with-pandas/"""
+    # find the number of observations in the smallest group
+    nmax = df[label_col_name].value_counts().max()
+    return (df
+            # split the dataframe per group
+            .groupby(label_col_name)
+            # sample nmin observations from each group
+            .apply(lambda x: x.sample(nmax, random_state=225530, replace=True))
             # recombine the dataframes
             .reset_index(drop=True)
             )
@@ -178,8 +191,27 @@ def create_binary_sets(remove):
 
 if __name__ == "__main__":
     print("Creating datasets")
-    create_binary_sets("Effective")
+    # create_binary_sets("Effective")
     # create_binary_sets("Ineffective")
     # create_binary_sets("Adequate")
+    full_data = pd.read_csv(f"{config.DATA_PATH}/train.csv")
+    with open(config.DATA_PATH + "/bert_splits.json") as f:
+        data = json.load(f)
 
-
+    train = full_data.iloc[data["train_indicies"]]
+    val = full_data.iloc[data["val_indicies"]]
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=False)
+    pre_processor = PreProcessor(tokenizer, [PreProcessorMethods.All], encoder=config.get_encoder())
+    pre_processor.preprocess(train)
+    pre_processor.preprocess(val)
+    train.drop(["discourse_id", "essay_id", "discourse_effectiveness"], axis=1, inplace=True)
+    val.drop(["discourse_id", "essay_id", "discourse_effectiveness"], axis=1, inplace=True)
+    print(f"BEFORE: {train.shape}")
+    train_balanced = oversample(train, "label")
+    print(f"AFTER: {train_balanced.shape}")
+    train_balanced.to_csv(f"{config.DATA_PATH}/train_split_balanced_oversample_deberta.csv", index_label="Index")
+    train.to_csv(f"{config.DATA_PATH}/train_split_deberta.csv", index_label="Index")
+    val.to_csv(f"{config.DATA_PATH}/val_split_deberta.csv", index_label="Index")
+    print(f"TRAIN {train.shape}")
+    print(f"TRAIN BALANCED {train_balanced.shape}")
+    print(f"VAL: {val.shape}")

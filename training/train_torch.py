@@ -9,7 +9,7 @@ from utils.eval_model import compute_metric
 from scipy.special import softmax
 from datasets import load_metric
 from transformers import TrainingArguments, Trainer, AutoTokenizer, AutoModel, AutoConfig, \
-    AutoModelForSequenceClassification
+    AutoModelForSequenceClassification, EarlyStoppingCallback
 from datasets import load_dataset
 # from requirementsforcomp import BalancedWeightUpdateTrainer, PreProcessor, PreProcessorMethods, BertClassifier, \
 #     compute_metric, get_encoder
@@ -31,7 +31,7 @@ def load_train_val_huggingface(filter="", balanced=False):
     elif filter == "ineffective":
         files = {"train": f"train_split_no_ineffective_{extra_args}.csv", "test": f"val_split_no_ineffective.csv"}
     else:
-        files = {"train": "train_split.csv", "test": "val_split.csv"}
+        files = {"train": f"train_split_{extra_args}_oversample.csv", "test": "val_split.csv"}
     return load_dataset(f"{DATA_PATH}", data_files=files)
 
 
@@ -39,15 +39,15 @@ metric = load_metric("f1")
 tokenizer = AutoTokenizer.from_pretrained("roberta-base", model_max_length=512)
 
 
-def tokenize(x):
-    return tokenizer(x["discourse_text"], padding="max_length", truncation=True)
+def tokenize(x, max_length):
+    return tokenizer(x["discourse_text"], padding="max_length", max_length=max_length, truncation=True)
 
 
 def tokenize_t(x):
-    return tokenizer(x["discourse_text"], padding="max_length", truncation=True, return_tensors="pt")
+    return tokenizer(x["discourse_text"], padding="max_length", max_length=400, truncation=True, return_tensors="pt")
 
 
-def train(model_container, train_set, val_set, weights_list, training_args):
+def train(model_container, train_set, val_set, weights_list, training_args, name_format):
 
     trainer = BalancedWeightUpdateTrainer(
         weights=weights_list,
@@ -56,7 +56,7 @@ def train(model_container, train_set, val_set, weights_list, training_args):
         eval_dataset=val_set,
         compute_metrics=compute_metric,
         args=training_args,
-
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
     )
     trainer.train()
     trainer.evaluate(eval_dataset=val_set)
