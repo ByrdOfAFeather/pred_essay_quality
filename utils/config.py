@@ -6,8 +6,8 @@ from datasets import load_dataset
 
 pd.set_option('mode.chained_assignment', None)
 
-DATA_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/data"
-LOG_PATH = "/home/byrdofafeather/ByrdOfAFeather/SSGOGETADATA/logs"
+DATA_PATH = "/ssd-playpen/byrdof/SSGOGETADATA/data"
+LOG_PATH = "/ssd-playpen/byrdof/SSGOGETADATA/logs"
 
 
 def load_bert_train_val(filter_adequate=False):

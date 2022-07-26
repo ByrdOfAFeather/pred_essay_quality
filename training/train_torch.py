@@ -14,6 +14,7 @@ from datasets import load_dataset
 # from requirementsforcomp import BalancedWeightUpdateTrainer, PreProcessor, PreProcessorMethods, BertClassifier, \
 #     compute_metric, get_encoder
 import pandas as pd
+import mlflow
 from utils.config import DATA_PATH, LOG_PATH
 
 
@@ -35,7 +36,16 @@ def load_train_val_huggingface(filter="", balanced=False):
     return load_dataset(f"{DATA_PATH}", data_files=files)
 
 
-metric = load_metric("f1")
+import datasets
+from datasets.download.download_config import DownloadConfig
+
+# from pycaret.classification import load_model
+
+
+
+datasets.config.HF_MODULES_CACHE = "/ssd-playpen/byrdof/transformers"
+download_config = DownloadConfig(cache_dir="/ssd-playpen/byrdof/transformers")
+metric  = load_metric("f1", cache_dir="/ssd-playpen/byrdof/transformers", download_config=download_config)
 tokenizer = AutoTokenizer.from_pretrained("roberta-base", model_max_length=512)
 
 
@@ -56,11 +66,13 @@ def train(model_container, train_set, val_set, weights_list, training_args, name
         eval_dataset=val_set,
         compute_metrics=compute_metric,
         args=training_args,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=10)]
     )
     trainer.train()
-    trainer.evaluate(eval_dataset=val_set)
-    return model_container
+    with mlflow.start_run(run_name=f"{name_format}-EVAL"):
+        results = trainer.evaluate(eval_dataset=val_set)
+        mlflow.end_run()
+    return results
 
 
 

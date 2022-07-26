@@ -120,6 +120,13 @@ class EnsembleBertClassifier(nn.Module):
 			self.classifier = nn.Linear(768, 3)
 		elif self.classification_method == "all":
 			self.classifier = nn.Linear(768*3, 3)
+		loss_weights = kwargs.get("loss_weights")
+		if loss_weights:
+			self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(loss_weights))
+		else:
+			self.loss_fct = nn.CrossEntropyLoss()
+
+		self.num_labels = 3
 
 		if loss_weights := kwargs.get("loss_weights"):
 			self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(loss_weights))

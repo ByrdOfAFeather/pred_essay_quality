@@ -7,7 +7,6 @@ import datasets.arrow_dataset
 import pandas as pd
 import torch
 import torch.utils.data
-import torchvision
 
 
 class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):

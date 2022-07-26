@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     train = full_data.iloc[data["train_indicies"]]
     val = full_data.iloc[data["val_indicies"]]
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained("roberta-base")
     pre_processor = PreProcessor(tokenizer, [PreProcessorMethods.All], encoder=config.get_encoder())
     pre_processor.preprocess(train)
     pre_processor.preprocess(val)
@@ -209,9 +209,9 @@ if __name__ == "__main__":
     print(f"BEFORE: {train.shape}")
     train_balanced = oversample(train, "label")
     print(f"AFTER: {train_balanced.shape}")
-    train_balanced.to_csv(f"{config.DATA_PATH}/train_split_balanced_oversample_deberta.csv", index_label="Index")
-    train.to_csv(f"{config.DATA_PATH}/train_split_deberta.csv", index_label="Index")
-    val.to_csv(f"{config.DATA_PATH}/val_split_deberta.csv", index_label="Index")
+    train_balanced.to_csv(f"{config.DATA_PATH}/train_split_balanced_oversample.csv", index_label="Index")
+    train.to_csv(f"{config.DATA_PATH}/train_split.csv", index_label="Index")
+    val.to_csv(f"{config.DATA_PATH}/val_split.csv", index_label="Index")
     print(f"TRAIN {train.shape}")
     print(f"TRAIN BALANCED {train_balanced.shape}")
     print(f"VAL: {val.shape}")

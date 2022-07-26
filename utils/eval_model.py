@@ -6,9 +6,17 @@ from scipy.special import softmax
 import torch.nn as nn
 from modeling.models import GenericModel
 from utils import config
-from pycaret.classification import load_model
+import datasets
+from datasets.download.download_config import DownloadConfig
 
-metric = load_metric("f1")
+# from pycaret.classification import load_model
+
+
+
+datasets.config.HF_MODULES_CACHE = "/ssd-playpen/byrdof/transformers"
+download_config = DownloadConfig(cache_dir="/ssd-playpen/byrdof/transformers")
+metric = load_metric("f1", cache_dir="/ssd-playpen/byrdof/transformers", download_config=download_config)
+
 
 
 def compute_metric(eval_pred):
